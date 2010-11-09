@@ -45,7 +45,9 @@ add_definitions(-Wall)
 add_definitions(-Werror=return-type)
 
 # Checking if compiler supports C++0x standard
-CHECK_CXX_COMPILER_FLAG(-std=c++0x CPP0x)
+IF(CMAKE_COMPILER_IS_GNUCXX) #Maybe Intel C++ compiler
+    CHECK_CXX_COMPILER_FLAG(-std=c++0x CPP0x)
+ENDIF()
 
 # If C++0x is supported then use it
 if(CPP0x)
