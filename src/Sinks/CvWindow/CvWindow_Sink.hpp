@@ -15,6 +15,9 @@
 #include "Props.hpp"
 #include "Logger.hpp"
 
+#include "EventHandler2.hpp"
+#include "Property.hpp"
+
 #include <cv.h>
 #include <highgui.h>
 
@@ -87,30 +90,6 @@ namespace CvWindow {
 using namespace cv;
 
 /*!
- * \brief CvWindow properties
- *
- * WndProps contain window properties, such as title
- */
-struct WndProps : public Base::Props {
-
-	std::string title;
-
-	/*!
-	 * \copydoc Base::Props::load
-	 */
-	void load(const ptree & pt) {
-		title = pt.get("title", "video");
-	}
-
-	/*!
-	 * \copydoc Base::Props::save
-	 */
-	void save(ptree & pt) {
-		pt.put("title", title);
-	}
-};
-
-/*!
  * \class CvWindow_Sink
  * \brief Creates a window and displays the image
  */
@@ -126,13 +105,6 @@ public:
 	 * Destructor
 	 */
 	virtual ~CvWindow_Sink();
-
-	/*!
-	 * Return window properties
-	 */
-	Base::Props * getProperties() {
-		return &props;
-	}
 
 protected:
 
@@ -164,25 +136,36 @@ protected:
 	/*!
 	 * Event handler function.
 	 */
-	void onNewImage();
+	void onNewImageN(int n);
 
-	/// Event handler.
-	Base::EventHandler<CvWindow_Sink> h_onNewImage;
+	/*!
+	 * Callback called when title is changed
+	 */
+	void onTitleCahnged(const std::string & old_title, const std::string & new_title);
+
+	/// Event handlers
+	std::vector< Base::EventHandler2* > handlers;
 
 
 	/// Image to be drawn
-	Base::DataStreamIn<Mat> in_img;
+	std::vector< Base::DataStreamIn<Mat, Base::DataStreamBuffer::Newest, Base::Synchronization::Mutex> *> in_img;
 
 	/// Additional data to draw
-	Base::DataStreamInPtr<Types::Drawable, Base::DataStreamBuffer::Newest> in_draw;
-
-	/// Window properties
-	WndProps props;
+	std::vector< Base::DataStreamInPtr<Types::Drawable, Base::DataStreamBuffer::Newest, Base::Synchronization::Mutex> *> in_draw;
 
 	/// Image to be drawn.
-	cv::Mat img;
+	std::vector< cv::Mat > img;
 
-	boost::shared_ptr<Types::Drawable> to_draw;
+	std::vector< boost::shared_ptr<Types::Drawable> > to_draw;
+
+
+
+
+	Base::Property<std::string> title;
+	Base::Property<int> count;
+
+	bool firststep;
+
 };
 
 }//: namespace CvWindow

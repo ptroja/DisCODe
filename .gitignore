@@ -1,6 +1,9 @@
+.gitignore
 build*/
 bin/
 gdb/
 .project
 .cproject
 .settings
+*~
+calibration_opencv

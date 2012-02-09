@@ -1,27 +1,16 @@
 SET(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+macro(ADD_ALL_PROCESSORS)
+  FILE(GLOB sub-dirs RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *)
+#  MESSAGE("Subdirs: ${sub-dirs}")
+  foreach(dir ${sub-dirs})
+    if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${dir}")
+      ADD_PROCESSOR(${dir})
+    endif()
+  endforeach()
+endmacro()
+
 MESSAGE(STATUS "Building processors:")
 
-ADD_PROCESSOR(Example)
-ADD_PROCESSOR(BlobExtractor)
-ADD_PROCESSOR(CvThreshold)
-ADD_PROCESSOR(CvColorConv)
-ADD_PROCESSOR(CvGaussianBlur)
-ADD_PROCESSOR(CvSplit)
-ADD_PROCESSOR(CvMorphology)
-ADD_PROCESSOR(CvFilter2D)
-ADD_PROCESSOR(CvPixelOperator)
-ADD_PROCESSOR(ExecTimer)
-ADD_PROCESSOR(Stereo)
+ADD_ALL_PROCESSORS()
 
-# Task specific processors
-ADD_PROCESSOR(MS_Sign_LUT)
-ADD_PROCESSOR(MS_Sign_Decide)
-
-ADD_PROCESSOR(MS_Barcode_Macro)
-ADD_PROCESSOR(MS_Barcode_Prepare)
-ADD_PROCESSOR(MS_Barcode_Decide)
-
-ADD_PROCESSOR(CvFindChessboardCorners)
-ADD_PROCESSOR(CvSolvePnP)
-ADD_PROCESSOR(CvUndistort)

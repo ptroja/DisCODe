@@ -39,6 +39,8 @@
  *
  * \event{newImage}
  * New image is ready
+ * \event{endOfSequence}
+ * Sequence has ended
  *
  *
  * \par Event handlers:
@@ -85,7 +87,7 @@ struct Props : public Base::Props {
 
 	void load(const ptree & pt) {
 		directory = pt.get("directory", ".");
-		pattern = pt.get("pattern", ".*\\.jpg");
+		pattern = pt.get("pattern", ".*\\.(jpg|png|bmp)");
 
 		sort = pt.get("sort", true);
 		prefetch = pt.get("prefetch", false);
@@ -156,6 +158,9 @@ protected:
 
 	/// Event signaling that new image was retrieved.
 	Base::Event * newImage;
+
+	/// Sequence has ended
+	Base::Event * endOfSequence;
 
 	/// Output data stream
 	Base::DataStreamOut<cv::Mat> out_img;

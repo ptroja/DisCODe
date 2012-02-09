@@ -13,6 +13,7 @@
 #include "Component.hpp"
 #include "Event.hpp"
 #include "EventHandler.hpp"
+#include "Property.hpp"
 #include "DataStreamInterface.hpp"
 
 #include "ComponentManager.hpp"
@@ -54,8 +55,9 @@ Task Configurator::loadConfiguration(std::string filename_, const std::vector<st
 		try {
 			read_xml(configuration_filename, configuration);
 		}
-		catch(xml_parser_error&) {
-			LOG(LFATAL) << "Configuration: Couldn't parse '" << configuration_filename << "' file.\n";
+		catch(const xml_parser_error& ex) {
+			LOG(LERROR) << "Configuration: Couldn't parse '" << configuration_filename << "' file.";
+			LOG(LERROR) << ex.what();
 			throw Common::DisCODeException(std::string("Configuration: Couldn't parse '") + configuration_filename + "' file.\n");
 		}
 
@@ -70,17 +72,17 @@ Task Configurator::loadConfiguration(std::string filename_, const std::vector<st
 			loadExecutors(tmp_node, task);
 		}
 		catch(ptree_bad_path&) {
-			LOG(LFATAL) << "No Executors branch in configuration file!\n";
+			LOG(LERROR) << "No Executors branch in configuration file!\n";
 		}
 
 		try {
 			tmp_node = &(configuration.get_child("Task.Components"));
+			loadComponents(tmp_node, task);
 		}
 		catch(const ptree_bad_path& ex) {
-			LOG(LFATAL) << "No Components branch in configuration file!\n";
+			LOG(LERROR) << "No Components branch in configuration file!\n";
 		}
 
-		loadComponents(tmp_node, task);
 
 		try {
 			tmp_node = &(configuration.get_child("Task.Events"));
@@ -110,6 +112,7 @@ void Configurator::loadExecutors(const ptree * node, Task & task) {
 	Executor * ex;
 
 	BOOST_FOREACH( TreeNode nd, *node) {
+		if (nd.first == "<xmlcomment>") continue;
 		ptree tmp = nd.second;
 		ex = executorManager->createExecutor(nd.first, tmp.get("<xmlattr>.type", "UNKNOWN"));
 		ex->load(tmp);
@@ -128,6 +131,9 @@ void Configurator::loadComponents(const ptree * node, Task & task) {
 	std::string thread;
 	std::string group;
 	std::string include;
+
+	Base::PropertyInterface * prop;
+
 	BOOST_FOREACH( TreeNode nd, *node) {
 		ptree tmp = nd.second;
 		name = nd.first;
@@ -148,8 +154,9 @@ void Configurator::loadComponents(const ptree * node, Task & task) {
 			try {
 				read_xml(include, tmp);
 			}
-			catch(xml_parser_error&) {
-				LOG(LFATAL) << "Configuration: Couldn't parse include file '" << include << "' for component " << name << ".\n";
+			catch(const xml_parser_error& ex) {
+				LOG(LERROR) << "Configuration: Couldn't parse include file '" << include << "' for component " << name << ".\n";
+				LOG(LERROR) << ex.what();
 				throw Common::DisCODeException(std::string("Configuration: Couldn't parse '") + include + "' file.\n");
 			}
 		}
@@ -164,7 +171,47 @@ void Configurator::loadComponents(const ptree * node, Task & task) {
 
 				throw Common::DisCODeException(name + ": failed to load component");
 			}
+			catch(const ptree_bad_data& ex) {
+				LOG(LERROR) << name << ": " << ex.what();
+				LOG(LNOTICE) << "Check properties in configuration file!";
+
+				throw Common::DisCODeException(name + ": failed to load component");
+			}
 		}
+
+		//std::cout << name << " properties:\n";
+		kern->printProperties();
+
+
+		//std::cout << name << " properties defined in xml:" << std::endl;
+		/*BOOST_FOREACH( TreeNode nd2, tmp) {
+			//std::cout << nd2.first << "=[" << tmp.get(nd2.first, "") << "]" << std::endl;
+			prop = kern->getProperty(nd2.first);
+			if (prop != NULL) {
+				//std::cout << "\t- this property is present in component.\n";
+				if (prop->isPersistent()) {
+					//std::cout << "\t- this property is persistent.\n";
+					prop->retrieve(tmp.get(nd2.first, ""));
+				}
+			}
+		}*/
+
+		std::vector<std::string> props = kern->getAllProperties();
+		std::string s;
+
+		BOOST_FOREACH( std::string pr, props) {
+			prop = kern->getProperty(pr);
+			if (prop != NULL) {
+				if (prop->isPersistent()) {
+					s = tmp.get(pr, "");
+					if (s != "") prop->retrieve(s);
+					LOG(LNOTICE) << pr << "=[" << prop->store() << "] from [" << s << "]";
+				} else {
+					LOG(LNOTICE) << pr << "=[" << prop->store() << "]";
+				}
+			}
+		}
+
 
 		kern->initialize();
 
@@ -180,7 +227,7 @@ void Configurator::loadComponents(const ptree * node, Task & task) {
 }
 
 void Configurator::loadEvents(const ptree * node) {
-	LOG(LINFO) << "Connecting events\n";
+	LOG(LTRACE) << "Connecting events\n";
 	std::string src, dst, name, caller, receiver, type;
 	Base::Component * src_k, * dst_k;
 	Base::EventHandlerInterface * h;
@@ -234,7 +281,7 @@ void Configurator::loadEvents(const ptree * node) {
 			e->addHandler(h);
 		}
 
-		LOG(LINFO) << name << ": src=" << src << ", dst=" << dst << "\n";
+		LOG(LTRACE) << name << ": src=" << src << ", dst=" << dst << "\n";
 	}
 }
 
